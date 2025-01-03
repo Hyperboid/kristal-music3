@@ -23,7 +23,7 @@ local Music = {}
 local _handlers = {}
 
 ---@type metatable
-local volumes_mt = {__index = function (t, k) return rawget(t, 2) or (t == 1 and 1 or 0) end}
+local volumes_mt = {__index = function (t, k) return rawget(t, 2) or ((t == 1 or t == "Default") and 1 or 0) end}
 
 function Music:init()
     self.volume = 1
@@ -93,16 +93,23 @@ function Music:play(music, volume, pitch)
                 musics[i] = format:format(music, i)
             end
         end
-        
-        if Assets.getMusicPath(music.." .1") and false then
+        if love.filesystem.getInfo(Mod.info.path.."/assets/music/"..music, "directory") then
+            musics = {}
+            for _,v in ipairs(love.filesystem.getDirectoryItems(Mod.info.path.."/assets/music/"..music)) do
+                _, v = Utils.endsWith(v, ".wav")
+                musics[v] = Assets.getMusicPath(music.."/"..v)
+            end
+            Kristal.Console.env.print("musics",musics)
+        elseif Assets.getMusicPath(music..".1") and false then
             loadMultiTrack("%s .%i")
         elseif Assets.getMusicPath(music.." - Track 1") then
             loadMultiTrack("%s - Track %i")
         end
         local paths = {}
         for i,v in pairs(musics) do
-            paths[i] = Assets.getMusicPath(v)
+            paths[i] = Assets.getMusicPath(v) or v
         end
+        Kristal.Console.env.print(paths)
         self:playFile(paths, volume, pitch, music)
     else
         self:playFile(nil, volume, pitch)
@@ -135,21 +142,16 @@ function Music:playFile(path, volume, pitch, name)
             self.current = name
             self.pitch = pitch or 1
             self.sources = {}
-            self.volumes = {1}
-            self.target_volumes = {1}
+            self.volumes = {1, Default = 1}
+            self.target_volumes = {1, Default = 1}
             self.target_volume = 1
             for i, value in pairs(path) do
                 self.sources[i] = (love.audio.newSource(value, "stream"))
-                self.volumes[i] = self.volumes[i] or 0
+                self.volumes[i] = self.volumes[i] or 1
                 self.target_volumes[i] = self.target_volumes[i] or 0
-                if i>1 then
-                    assert(
-                        (self.sources[i]:getDuration("seconds") - self.sources[i-1]:getDuration("seconds")) < 1/1000,
-                        "More than 1ms of variation in length between"..path[i-1].." and "..path[i]
-                    )
-                end
             end
             for id,source in pairs(self.sources) do
+                Kristal.Console.env.print("source",id,source)
                 source:setVolume(self:getVolume(id))
                 source:setPitch(self:getPitch())
                 source:setLooping(self.looping)
@@ -221,9 +223,13 @@ function Music:seek(time)
     end
 end
 
+function Music:getSource()
+    return self.sources[1] or self.sources["Default"]
+end
+
 ---@return number
 function Music:tell()
-    return self.sources[1]:tell()
+    return self:getSource():tell()
 end
 
 function Music:stop()
@@ -250,12 +256,12 @@ end
 
 ---@return boolean
 function Music:isPlaying()
-    return self.sources[1] and self.sources[1]:isPlaying() or false
+    return self:getSource() and self:getSource():isPlaying() or false
 end
 
 ---@return boolean
 function Music:canResume()
-    return self.sources[1] ~= nil and not self.sources[1]:isPlaying()
+    return self:getSource() ~= nil and not self:getSource():isPlaying()
 end
 
 function Music:remove()
