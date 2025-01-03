@@ -23,7 +23,7 @@ local Music = {}
 local _handlers = {}
 
 ---@type metatable
-local volumes_mt = {__index = function (t, k) return rawget(t, 2) or ((t == 1 or t == "Default") and 1 or 0) end}
+local volumes_mt = {__index = function (t, k) return rawget(t, 2) or ((k == 1 or k == "Default") and 1 or 0) end}
 
 function Music:init()
     self.volume = 1
@@ -140,8 +140,8 @@ function Music:playFile(path, volume, pitch, name)
             self.current = name
             self.pitch = pitch or 1
             self.sources = {}
-            self.volumes = {1, Default = 1}
-            self.target_volumes = {1, Default = 1}
+            self.volumes = setmetatable({}, volumes_mt)
+            self.target_volumes = setmetatable({}, volumes_mt)
             self.target_volume = 1
             for i, value in pairs(path) do
                 self.sources[i] = (love.audio.newSource(value, "stream"))
