@@ -99,7 +99,6 @@ function Music:play(music, volume, pitch)
                 _, v = Utils.endsWith(v, ".wav")
                 musics[v] = Assets.getMusicPath(music.."/"..v)
             end
-            Kristal.Console.env.print("musics",musics)
         elseif Assets.getMusicPath(music..".1") and false then
             loadMultiTrack("%s .%i")
         elseif Assets.getMusicPath(music.." - Track 1") then
@@ -109,7 +108,6 @@ function Music:play(music, volume, pitch)
         for i,v in pairs(musics) do
             paths[i] = Assets.getMusicPath(v) or v
         end
-        Kristal.Console.env.print(paths)
         self:playFile(paths, volume, pitch, music)
     else
         self:playFile(nil, volume, pitch)
@@ -151,7 +149,6 @@ function Music:playFile(path, volume, pitch, name)
                 self.target_volumes[i] = self.target_volumes[i] or 0
             end
             for id,source in pairs(self.sources) do
-                Kristal.Console.env.print("source",id,source)
                 source:setVolume(self:getVolume(id))
                 source:setPitch(self:getPitch())
                 source:setLooping(self.looping)
