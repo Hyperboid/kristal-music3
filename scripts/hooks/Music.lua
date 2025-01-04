@@ -125,12 +125,27 @@ function Music:play(music, volume, pitch)
                 musics[i] = format:format(music, i)
             end
         end
-        if love.filesystem.getInfo(Mod.info.path.."/assets/music/"..music, "directory") then
-            musics = {}
-            for _,v in ipairs(love.filesystem.getDirectoryItems(Mod.info.path.."/assets/music/"..music)) do
-                _, v = Utils.endsWith(v, ".wav")
-                musics[v] = Assets.getMusicPath(music.."/"..v)
+        local function loadDirGroups()
+            local new_musics = {}
+            local function loadDirGroup(path)
+                if love.filesystem.getInfo(path..music, "directory") then
+                    for _,v in ipairs(love.filesystem.getDirectoryItems(path..music)) do
+                        _, v = Utils.endsWith(v, ".wav")
+                        new_musics[v] = Assets.getMusicPath(music.."/"..v)
+                    end
+                end
             end
+            loadDirGroup("/assets/music/")
+            for _, lib in Kristal.iterLibraries() do
+                loadDirGroup(lib.info.path.."/assets/music/")
+            end
+            loadDirGroup(Mod.info.path.."/assets/music/")
+            if not Utils.equal(new_musics, {}) then
+                musics = new_musics
+                return true
+            end
+        end
+        if loadDirGroups() then
         elseif Assets.getMusicPath(music..".1") and false then
             loadMultiTrack("%s .%i")
         elseif Assets.getMusicPath(music.." - Track 1") then
