@@ -125,13 +125,13 @@ function Music:play(music, volume, pitch)
                 musics[i] = format:format(music, i)
             end
         end
-        local function loadDirGroups()
+        local function loadDirGroups(musicgrp)
             local new_musics = {}
             local function loadDirGroup(path)
-                if love.filesystem.getInfo(path..music, "directory") then
-                    for _,v in ipairs(love.filesystem.getDirectoryItems(path..music)) do
+                if love.filesystem.getInfo(path..musicgrp, "directory") then
+                    for _,v in ipairs(love.filesystem.getDirectoryItems(path..musicgrp)) do
                         _, v = Utils.endsWith(v, ".wav")
-                        new_musics[v] = Assets.getMusicPath(music.."/"..v)
+                        new_musics[v] = Assets.getMusicPath(musicgrp.."/"..v)
                     end
                 end
             end
@@ -141,13 +141,17 @@ function Music:play(music, volume, pitch)
             end
             loadDirGroup(Mod.info.path.."/assets/music/")
             if not Utils.equal(new_musics, {}) then
-                musics = new_musics
-                return true
+                return new_musics
             end
         end
-        if loadDirGroups() then
-        elseif Assets.getMusicPath(music..".1") and false then
-            loadMultiTrack("%s .%i")
+        local dir_gropus_musics = loadDirGroups(music)
+        if dir_gropus_musics then
+            musics = dir_gropus_musics
+            if loadDirGroups(music..".loop") then
+                self.next_track = music..".loop"
+            end
+        elseif Assets.getMusicPath(music.."_1") and false then
+            loadMultiTrack("%s_%i")
         elseif Assets.getMusicPath(music.." - Track 1") then
             loadMultiTrack("%s - Track %i")
         end
