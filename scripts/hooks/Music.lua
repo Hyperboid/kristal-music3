@@ -130,8 +130,10 @@ function Music:play(music, volume, pitch)
             local function loadDirGroup(path)
                 if love.filesystem.getInfo(path..musicgrp, "directory") then
                     for _,v in ipairs(love.filesystem.getDirectoryItems(path..musicgrp)) do
-                        _, v = Utils.endsWith(v, ".wav")
-                        new_musics[v] = Assets.getMusicPath(musicgrp.."/"..v)
+                        -- TODO: better way to remove file extension
+                        local v2 = v:sub(1, #v-4)
+                        v = v:sub(1, #v-4)
+                        new_musics[v] = Assets.getMusicPath(musicgrp.."/"..v) or Assets.getMusicPath(musicgrp.."/"..v2)
                     end
                 end
             end
@@ -147,13 +149,13 @@ function Music:play(music, volume, pitch)
         local dir_gropus_musics = loadDirGroups(music)
         if dir_gropus_musics then
             musics = dir_gropus_musics
-            if loadDirGroups(music..".loop") then
-                self.next_track = music..".loop"
-            end
         elseif Assets.getMusicPath(music.."_1") and false then
             loadMultiTrack("%s_%i")
         elseif Assets.getMusicPath(music.." - Track 1") then
             loadMultiTrack("%s - Track %i")
+        end
+        if Assets.getMusicPath(music..".loop") or (dir_gropus_musics and loadDirGroups(music..".loop")) then
+            self.next_track = music..".loop"
         end
         local paths = {}
         for i,v in pairs(musics) do
@@ -188,7 +190,8 @@ function Music:playFile(path, volume, pitch, name)
             for _,source in pairs(self.sources) do
                 source:stop()
             end
-            self.current = name
+            local _
+            _, self.current = Utils.endsWith(name, ".loop")
             self.pitch = pitch or 1
             self.sources = {}
             self.bpm = MUSIC_BPMS and MUSIC_BPMS[name] or 120
@@ -238,6 +241,16 @@ function Music:playFile(path, volume, pitch, name)
             source:play()
         end
         self.started = true
+    end
+    if self.next_track then
+        local next_track = self.next_track
+        self.next_track = nil
+        self:addCallback(0.1, function ()
+            self:addCallback(0, function ()
+                self:play(next_track)
+            end)
+        end)
+        
     end
 end
 
