@@ -1,6 +1,9 @@
 {
     "id": "music3",
-    "authors": ["Hyperboid"],
+    "authors": [
+        "Dobby233Liu", // Music2
+        "Hyperboid"
+    ],
     "version": "v1.0.0",
     "engineVer": "v0.10.0-dev"
 }
