@@ -154,7 +154,7 @@ function Music:play(music, volume, pitch)
         elseif Assets.getMusicPath(music.." - Track 1") then
             loadMultiTrack("%s - Track %i")
         end
-        if Assets.getMusicPath(music..".loop") or (dir_gropus_musics and loadDirGroups(music..".loop")) then
+        if Assets.getMusicPath(music..".loop") or (loadDirGroups(music..".loop")) then
             self.next_track = music..".loop"
         end
         local paths = {}
