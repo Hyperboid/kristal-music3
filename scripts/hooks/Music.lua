@@ -20,6 +20,7 @@
 ---@overload fun() : Music
 local Music = {}
 
+---@type Music[]
 local _handlers = {}
 
 ---@type metatable
@@ -43,8 +44,39 @@ function Music:init()
     self.sources = {}
     self.volumes = setmetatable({}, volumes_mt)
     self.target_volumes = setmetatable({}, volumes_mt)
+    ---@type {target_times: number[], start_time:number, callback: function}[]
+    self.tell_callbacks = {}
+    self.bpm = 120
 end
 
+---Adds a callback that runs at a specific point in the song
+---@param time number|number[]
+---@param callback fun(mus:Music)
+function Music:addCallback(time, callback)
+    if type(time) == "number" then
+        time = {time}
+    end
+    self.tell_callbacks[#self.tell_callbacks+1] = {
+        callback = callback,
+        start_time = self:tell(),
+        target_times = time,
+    }
+end
+
+---@param multiple number
+---@param callback fun(mus:Music)
+function Music:nextBeat(multiple, callback)
+    local beat = self:tell() / (self.bpm / 60)
+    local dur = self:getSource():getDuration("seconds")
+    self:addCallback(((math.ceil(beat/multiple)) * (self.bpm / 60) * multiple) % dur, callback)
+end
+
+function Music:getNextBeat(multiple)
+    local tell = self:tell()
+    local beat = tell / (self.bpm / 60)
+    local dur = self:getSource():getDuration("seconds")
+    return ((math.ceil(beat/multiple)) * (self.bpm / 60) * multiple) - tell
+end
 
 ---@param to? number
 ---@param speed? number
@@ -140,6 +172,7 @@ function Music:playFile(path, volume, pitch, name)
             self.current = name
             self.pitch = pitch or 1
             self.sources = {}
+            self.bpm = MUSIC_BPMS and MUSIC_BPMS[name] or 120
             self.volumes = setmetatable({}, volumes_mt)
             self.target_volumes = setmetatable({}, volumes_mt)
             self.target_volume = 1
@@ -189,6 +222,11 @@ function Music:playFile(path, volume, pitch, name)
     end
 end
 
+function Music:setVolumes(volumes)
+    Utils.merge(self.volumes, volumes)
+    Utils.merge(self.target_volumes, volumes)
+end
+
 ---@param volume number
 function Music:setVolume(volume)
     self.volume = volume
@@ -226,7 +264,7 @@ end
 
 ---@return number
 function Music:tell()
-    return self:getSource():tell()
+    return self:getSource() and self:getSource():tell() or 0
 end
 
 function Music:stop()
@@ -329,6 +367,19 @@ local function update()
             handler.fade_speed = 0
             if handler.fade_callback then
                 handler:fade_callback()
+            end
+        end
+        local tell = handler:tell()
+        for i=#handler.tell_callbacks, 1, -1 do
+            local callback = handler.tell_callbacks[i]
+            for _, target_time in ipairs(callback.target_times) do
+                if tell > target_time then
+                    if true and (callback.start_time > tell or callback.start_time < target_time) then
+                        callback.callback(handler)
+                        table.remove(handler.tell_callbacks, i)
+                        break
+                    end
+                end
             end
         end
     end
